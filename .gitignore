@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="de" class="bg-zinc-950 text-white">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>15EDO Playground – 6 Reihen (Hold-Sustain + High-Quality WAV)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .key {
+      transition: all 0.08s ease;
+      height: 88px;
+    }
+    .key:active { transform: scale(0.90); filter: brightness(1.45); }
+    .active { box-shadow: 0 0 35px rgb(255 255 255 / 0.8) !important; }
+
+    /* Pastell-Farben */
+    .pent1 { background: linear-gradient(to bottom, #fef08c, #fde047); color: #3f2e00; }
+    .pent2 { background: linear-gradient(to bottom, #fda4af, #fb7185); color: #3f1e22; }
+    .pent3 { background: linear-gradient(to bottom, #a1c4fd, #7fb6ff); color: #1e2a4a; }
+    .pent4 { background: linear-gradient(to bottom, #fed7aa, #fb923c); color: #3f2e00; }
+    .pent5 { background: linear-gradient(to bottom, #c4b5fd, #a78bfa); color: #3f2a5a; }
+    .pent6 { background: linear-gradient(to bottom, #a7f3d0, #6ee7b7); color: #1e3a2f; }
+
+    .keycap {
+      font-family: "Georgia", cursive;
+      font-style: italic;
+      font-weight: 300;
+      letter-spacing: 2px;
+      background: rgba(255,255,255,0.45);
+      backdrop-filter: blur(6px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      padding: 3px 14px;
+      border-radius: 9999px;
+      font-size: 11px;
+      color: #1f2937;
+      transition: all 0.1s ease;
+    }
+    .key:hover .keycap { transform: scale(1.15); background: rgba(255,255,255,0.75); }
+  </style>
+</head>
+<body class="min-h-screen p-6">
+  <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-8">
+      <h1 class="text-5xl font-bold tracking-tighter mb-2">15EDO Playground</h1>
+      <p class="text-2xl text-zinc-300">6 Reihen • Hold-Sustain • High-Quality WAV Piano + Premium Synth</p>
+      <p class="text-sm text-zinc-500 mt-1">Johannes Kersthold Edition • März 2026 ✨</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- INSTRUMENTS -->
+      <div class="lg:col-span-3 bg-zinc-900 rounded-3xl p-8">
+        <h2 class="text-xl font-semibold mb-6">Instrument wählen</h2>
+        
+        <div onclick="switchInstrument(0)" class="instrument-btn mb-3 p-5 rounded-2xl bg-zinc-800 hover:bg-emerald-950 cursor-pointer flex items-center gap-4" id="btn-0">
+          <span class="text-3xl">🎹</span>
+          <div><div class="font-medium">Grand Piano</div><div class="text-xs text-zinc-400">Salamander WAV (Studio-Qualität)</div></div>
+        </div>
+        
+        <div onclick="switchInstrument(1)" class="instrument-btn mb-3 p-5 rounded-2xl bg-zinc-800 hover:bg-emerald-950 cursor-pointer flex items-center gap-4" id="btn-1">
+          <span class="text-3xl">🎻</span>
+          <div><div class="font-medium">Orchestral Strings</div><div class="text-xs text-zinc-400">klar & warm</div></div>
+        </div>
+        
+        <div onclick="switchInstrument(2)" class="instrument-btn p-5 rounded-2xl bg-zinc-800 hover:bg-emerald-950 cursor-pointer flex items-center gap-4" id="btn-2">
+          <span class="text-3xl">🎛️</span>
+          <div><div class="font-medium">Synth</div><div class="text-xs text-zinc-400">rein & klar (Premium Digital)</div></div>
+        </div>
+      </div>
+
+      <!-- 6 REIHEN KEYBOARD -->
+      <div class="lg:col-span-6 bg-zinc-900 rounded-3xl p-8 overflow-y-auto max-h-[720px]">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-semibold">15EDO Keyboard – 6 Reihen</h2>
+          <div class="flex gap-3">
+            <button onclick="changeOctave(-1)" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl">– Oktave</button>
+            <span id="octave" class="px-6 py-2 bg-zinc-800 rounded-xl font-mono text-lg">4 – 5</span>
+            <button onclick="changeOctave(1)" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl">+ Oktave</button>
+          </div>
+        </div>
+
+        <div id="keyboardContainer"></div>
+
+        <div class="mt-8 flex gap-6 justify-center">
+          <button onclick="playDemo()" class="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-medium flex items-center gap-3 text-lg">
+            ▶️ 5EDO Ritual-Demo (Papua-Stil)
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="lg:col-span-3 bg-zinc-900 rounded-3xl p-8 space-y-8">
+        <div>
+          <label class="block text-sm mb-2">Lautstärke</label>
+          <input type="range" id="volume" min="0" max="1" step="0.01" value="0.85" class="w-full accent-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm mb-2">Reverb</label>
+          <input type="range" id="reverb" min="0" max="0.9" step="0.01" value="0.52" oninput="updateReverb(this.value)" class="w-full accent-emerald-500">
+        </div>
+        <div>
+          <label class="block text-sm mb-2">Attack</label>
+          <input type="range" id="attack" min="0.01" max="2" step="0.01" value="0.05" oninput="updateEnvelope()" class="w-full accent-emerald-500">
+        </div>
+
+        <div class="pt-6 border-t border-zinc-700 text-xs leading-relaxed text-zinc-400">
+          Halte die Maus oder die Taste gedrückt – der Ton klingt so lange, wie du willst.<br>
+          Grand Piano nutzt echte Studio-WAV-Samples (Salamander) in höchster Qualität.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeSynth = null;
+    let currentInstrument = 0;
+    let currentBaseStep = 0;
+    let activeNotes = new Map();
+    let reverb = new Tone.Reverb({ decay: 5.5, wet: 0.52 }).toDestination();
+    let masterVolume = new Tone.Volume(-6).connect(reverb);
+    let chorus = new Tone.Chorus(3.5, 2.8, 0.65).connect(masterVolume);
+
+    const instruments = [
+      // 0: Grand Piano – echte High-Quality WAV (Salamander Studio-Aufnahmen)
+      () => {
+        const sampler = new Tone.Sampler({
+          urls: { 
+            "C1": "C1.mp3", "C2": "C2.mp3", "C3": "C3.mp3", "C4": "C4.mp3",
+            "C5": "C5.mp3", "C6": "C6.mp3", "C7": "C7.mp3", "C8": "C8.mp3"
+          },
+          baseUrl: "https://tonejs.github.io/audio/salamander/",
+          release: 2.2,
+          onload: () => console.log("🎹 High-Quality Salamander WAV Piano geladen")
+        });
+        sampler.connect(chorus);
+        return sampler;
+      },
+      // 1: Strings
+      () => {
+        const synth = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: "sawtooth" },
+          envelope: { attack: 0.8, decay: 1.2, sustain: 0.85, release: 2.8 }
+        });
+        synth.connect(chorus);
+        return synth;
+      },
+      // 2: Synth – jetzt noch reiner & hochwertiger (Premium Sine + Layer)
+      () => {
+        const cleanSynth = new Tone.PolySynth(Tone.Synth, {
+          oscillator: { type: "sine" },
+          envelope: { attack: 0.02, decay: 0.12, sustain: 0.95, release: 3.5 }
+        });
+        const filter = new Tone.Filter({ frequency: 4800, type: "lowpass", Q: 1 });
+        cleanSynth.connect(filter);
+        filter.connect(chorus);
+        return cleanSynth;
+      }
+    ];
+
+    function createSynth() {
+      if (activeSynth) activeSynth.dispose();
+      activeSynth = instruments[currentInstrument]();
+      activeSynth.connect(masterVolume);
+    }
+
+    function switchInstrument(i) {
+      currentInstrument = i;
+      document.querySelectorAll('.instrument-btn').forEach((el, idx) => el.classList.toggle('bg-emerald-950', idx === i));
+      createSynth();
+    }
+
+    const baseFreq = 261.625565;
+    function getFrequency(degree) {
+      const steps = degree + currentBaseStep;
+      return baseFreq * Math.pow(2, steps / 15);
+    }
+
+    const rowBases = [0, 1, 2, 15, 16, 17];
+    const keyboardBindings = ['1','2','3','4','5','6','q','w','e','r','t','z','a','s','d','f','g','h','7','8','9','0','ß','´','u','i','o','p','ü','+','j','k','l','ö','ä','#'];
+
+    function buildKeyboard() {
+      const container = document.getElementById("keyboardContainer");
+      container.innerHTML = "";
+      for (let rowIdx = 0; rowIdx < 6; rowIdx++) {
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "mb-5";
+        rowDiv.innerHTML = `
+          <div class="text-xs text-zinc-400 mb-2 flex items-center gap-2">
+            <span class="w-4 h-px bg-current"></span>
+            ${rowIdx+1}. 5EDO-Pentatonik • Oktave ${4 + Math.floor(rowBases[rowIdx]/15)}
+          </div>
+          <div id="row${rowIdx+1}" class="grid grid-cols-6 gap-2"></div>
+        `;
+        container.appendChild(rowDiv);
+
+        const rowEl = document.getElementById(`row${rowIdx+1}`);
+        for (let i = 0; i < 6; i++) {
+          const deg = rowBases[rowIdx] + i * 3;
+          const binding = keyboardBindings[rowIdx * 6 + i];
+
+          const key = document.createElement("div");
+          key.className = `key pent${rowIdx+1} flex items-center justify-center rounded-2xl cursor-pointer border border-zinc-700 shadow-inner relative`;
+          key.innerHTML = `
+            <div class="keycap">${binding}</div>
+            <div class="absolute -top-1 right-2 text-[9px] font-mono opacity-50">${Math.floor((deg + currentBaseStep)/15) + 4}</div>
+          `;
+          key.dataset.degree = deg;
+
+          key.addEventListener("mousedown", () => playNote(deg));
+          key.addEventListener("mouseup", () => releaseNote(deg));
+          key.addEventListener("mouseleave", () => releaseNote(deg));
+
+          rowEl.appendChild(key);
+        }
+      }
+    }
+
+    function playNote(degree) {
+      if (!activeSynth) createSynth();
+      const freq = getFrequency(degree);
+
+      if (!activeNotes.has(degree)) {
+        activeSynth.triggerAttack(freq, Tone.now(), 0.95);
+        activeNotes.set(degree, freq);
+      }
+
+      document.querySelectorAll('.key').forEach(k => {
+        if (parseInt(k.dataset.degree) === degree) k.classList.add('active');
+      });
+    }
+
+    function releaseNote(degree) {
+      if (activeNotes.has(degree)) {
+        activeSynth.triggerRelease(activeNotes.get(degree));
+        activeNotes.delete(degree);
+      }
+
+      document.querySelectorAll('.key').forEach(k => {
+        if (parseInt(k.dataset.degree) === degree) k.classList.remove('active');
+      });
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.repeat) return;
+      const idx = keyboardBindings.indexOf(e.key.toLowerCase());
+      if (idx === -1) return;
+      const deg = rowBases[Math.floor(idx / 6)] + (idx % 6) * 3;
+      playNote(deg);
+    });
+
+    document.addEventListener("keyup", e => {
+      const idx = keyboardBindings.indexOf(e.key.toLowerCase());
+      if (idx === -1) return;
+      const deg = rowBases[Math.floor(idx / 6)] + (idx % 6) * 3;
+      releaseNote(deg);
+    });
+
+    function changeOctave(dir) {
+      currentBaseStep += dir * 15;
+      const displayOct = 4 + Math.floor(currentBaseStep / 15);
+      document.getElementById("octave").textContent = `${displayOct} – ${displayOct + 1}`;
+      buildKeyboard();
+    }
+
+    function updateReverb(val) { reverb.wet.value = parseFloat(val); }
+    function updateEnvelope() {
+      if (!activeSynth || currentInstrument === 0) return;
+      const att = parseFloat(document.getElementById("attack").value);
+      if (activeSynth.set) activeSynth.set({ envelope: { attack: att } });
+    }
+
+    async function playDemo() {
+      await Tone.start();
+      const demoDegrees = [0,3,6,9,12,15];
+      let time = Tone.now();
+      for (let d of demoDegrees) {
+        const freq = getFrequency(d);
+        activeSynth.triggerAttackRelease(freq, "2n", time, 0.9);
+        time += 0.68;
+      }
+    }
+
+    window.onload = () => {
+      createSynth();
+      buildKeyboard();
+      switchInstrument(0);
+    };
+  </script>
+</body>
+</html>
